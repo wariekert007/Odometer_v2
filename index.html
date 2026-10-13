@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Odometer Logbook</title>
+<meta name="theme-color" content="#0f766e">
+<meta name="description" content="Log car trips with odometer photos and export to Excel. Works offline; data stays on your phone.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<style>
+  :root {
+    --bg: #f3f5f7; --card: #ffffff; --text: #14171c; --muted: #636b78; --line: #e2e6eb;
+    --accent: #0f766e; --accent-ink: #ffffff; --soft: #eaf0f3;
+    --warn: #93400b; --warn-bg: #fff4e0; --err: #b42318; --err-bg: #fdecea;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1014; --card: #161a20; --text: #eef1f4; --muted: #9aa3af; --line: #272d36;
+      --accent: #2dd4bf; --accent-ink: #032520; --soft: #222831;
+      --warn: #fbbf5a; --warn-bg: #2b2213; --err: #ff8a80; --err-bg: #2d1717;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body { font: 16px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; -webkit-text-size-adjust: 100%; }
+  .wrap { max-width: 520px; margin: 0 auto; padding: 16px 16px 48px; padding-top: max(16px, env(safe-area-inset-top)); }
+  header { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 2px 0 14px; }
+  header h1 { font-size: 19px; margin: 0; letter-spacing: .2px; }
+  .hbtns { display: flex; gap: 8px; }
+  .step { font-size: 13px; color: var(--muted); font-weight: 650; text-transform: uppercase; letter-spacing: .6px; }
+  h2 { font-size: 24px; margin: 2px 0 6px; line-height: 1.2; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; padding: 18px; margin-bottom: 14px; }
+  .muted { color: var(--muted); font-size: 14px; }
+  .big { font-size: 38px; font-weight: 750; font-variant-numeric: tabular-nums; letter-spacing: .5px; line-height: 1.1; margin: 6px 0; }
+  .big small { font-size: 16px; font-weight: 600; color: var(--muted); margin-left: 4px; }
+  .pill { display: inline-block; font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: var(--soft); color: var(--muted); text-transform: uppercase; letter-spacing: .5px; }
+  .pill.live { background: var(--accent); color: var(--accent-ink); }
+  button, .btn {
+    appearance: none; border: 0; border-radius: 14px; padding: 16px 18px; width: 100%;
+    font-family: inherit; font-size: 17px; font-weight: 650; line-height: 1.2; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 10px; text-decoration: none; min-height: 54px;
+  }
+  .primary { background: var(--accent); color: var(--accent-ink); }
+  .secondary { background: var(--soft); color: var(--text); }
+  .text { background: none; color: var(--accent); min-height: 44px; padding: 10px; font-size: 15px; }
+  .small { width: auto; min-height: 40px; padding: 9px 14px; font-size: 15px; border-radius: 12px; }
+  .danger { color: var(--err); }
+  button:disabled { opacity: .5; }
+  .stack > * + * { margin-top: 10px; }
+  .two { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; }
+  .two input.in { min-width: 0; padding: 14px 10px; font-size: 16px; }
+  label.f { display: block; margin: 18px 0 6px; font-weight: 650; }
+  .two label.f { margin-top: 14px; }
+  input.in {
+    width: 100%; padding: 14px; border-radius: 14px; border: 1.5px solid var(--line); min-height: 52px;
+    background: var(--bg); color: var(--text); font: inherit; font-size: 18px; outline: none;
+  }
+  input.in:focus { border-color: var(--accent); }
+  input.odo { font-size: 30px; font-weight: 750; letter-spacing: 1px; font-variant-numeric: tabular-nums; text-align: center; }
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .chip { width: auto; min-height: 38px; padding: 8px 14px; border-radius: 999px; background: var(--soft); color: var(--text); font-size: 15px; font-weight: 550; }
+  .chip.on { background: var(--accent); color: var(--accent-ink); }
+  .photo { width: 100%; border-radius: 14px; display: block; margin: 14px 0 0; max-height: 240px; object-fit: contain; background: #000; }
+  .msg { padding: 12px 14px; border-radius: 12px; margin-top: 14px; font-size: 15px; }
+  .msg.info { background: var(--soft); color: var(--muted); }
+  .msg.warn { background: var(--warn-bg); color: var(--warn); }
+  .msg.err { background: var(--err-bg); color: var(--err); }
+  .trip { display: block; width: 100%; text-align: left; background: none; border: 0; border-top: 1px solid var(--line);
+          border-radius: 0; padding: 12px 0; min-height: 0; color: inherit; font: inherit; }
+  .trip:first-child { border-top: 0; padding-top: 4px; }
+  .row { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+  .km { font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .sum { display: flex; gap: 24px; margin-top: 16px; }
+  .sum b { display: block; font-size: 26px; font-variant-numeric: tabular-nums; }
+  .spin { width: 20px; height: 20px; border: 3px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: s .8s linear infinite; flex: none; }
+  @keyframes s { to { transform: rotate(360deg); } }
+  #toast { position: fixed; left: 16px; right: 16px; bottom: max(20px, env(safe-area-inset-bottom)); max-width: 488px; margin: 0 auto; background: var(--text); color: var(--bg);
+           padding: 14px 16px; border-radius: 14px; font-weight: 600; text-align: center; opacity: 0; transform: translateY(10px);
+           transition: .25s; pointer-events: none; z-index: 9; }
+  #toast.on { opacity: 1; transform: none; }
+  .hidden { display: none !important; }
+  svg { flex: none; }
+  .small.icon { padding: 9px 11px; }
+  .sw { width: 52px; min-height: 32px; height: 32px; padding: 0; border-radius: 999px; background: var(--line); position: relative; flex: none; }
+  .sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 26px; height: 26px; border-radius: 50%; background: #fff; transition: .2s; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+  .sw[aria-checked="true"] { background: var(--accent); }
+  .sw[aria-checked="true"]::after { left: 23px; }
+  .days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+  .day { min-height: 42px; padding: 0; border-radius: 12px; font-size: 14px; background: var(--soft); color: var(--muted); }
+  .day.on { background: var(--accent); color: var(--accent-ink); }
+  input.time { font-size: 28px; font-weight: 700; text-align: center; font-variant-numeric: tabular-nums; }
+  .off-card { opacity: .55; }
+  details summary { cursor: pointer; font-weight: 650; color: var(--accent); padding: 8px 0; }
+  details ol { padding-left: 20px; margin: 6px 0 0; }
+  details li { margin-bottom: 8px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Odometer Logbook</h1>
+    <div class="hbtns">
+      <button id="installBtn" class="secondary small hidden" type="button">Install</button>
+      <button id="remBtn" class="secondary small icon" type="button" data-act="reminders" aria-label="Reminders" title="Reminders"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>
+      <button id="exportBtn" class="secondary small" type="button" data-act="export">Export</button>
+    </div>
+  </header>
+  <main id="app"></main>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+<noscript>Please enable JavaScript to use this app.</noscript>
+<script src="config.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
