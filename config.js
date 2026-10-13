@@ -4,5 +4,5 @@
  * Leave it empty ('') to switch reminders off for everyone.
  */
 window.ODO_CONFIG = {
-  reminderServer: ''
+  reminderServer: 'https://odometer.wariekert007.workers.dev'
 };
